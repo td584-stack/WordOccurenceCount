@@ -8,7 +8,7 @@ typedef struct node {
 	struct node *left, *right;
 } node;
 
-void tree_add(node **root, const char *word);
+void tree_add(node **nd, const char *word);
 size_t tree_size(node *root);
 void tree_to_array(node *root, node **arr, size_t *i);
 void tree_free(node *root);
