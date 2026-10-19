@@ -22,15 +22,15 @@ typedef struct {
 } word_reader;
 
 void wr_init(word_reader *w);
-void wr_read(word_reader *w, const char *data, size_t n, node **root);
-void wr_ender(word_reader *w, node **root);
+void wr_read(word_reader *w, const char *data, size_t n);
+void wr_ender(word_reader *w);
 void wr_free(word_reader *w);
 
 // Path Traversal
 
-void process_path(const char *path, const char *suffix, node **root);
-void process_file(const char *path, node **root);
-void traverse_dir(const char *path, const char *suffix, node **root);
+void process_path(const char *path, const char *suffix);
+void process_file(const char *path);
+void traverse_dir(const char *path, const char *suffix);
 
 //Output
 
