@@ -8,7 +8,10 @@
 static node *root = NULL;
 
 
+//Binary Search Tree Implementation
+//---------------------------------
 //So the goal here is to use strcmp() to add words to the tree.
+
 void tree_add(node **nd, const char *word){
 	if (*nd == NULL){			//This is the base case, if the node is NULL, we allocate a tempory node memory with malloc
 		node *n = malloc(sizeof(*n);    //Then duplicate the passed word from our word reader using strdup() into temp nodes word var
@@ -49,12 +52,77 @@ void tree_free(node *nd){	//So for free we first traverse down the left subtree
 	free(nd);		// So children are always freed before parent node.
 }
 
+//Word Reading
+//-----------
+//
+
+// This should initialize our struct for a clean slate
+void wr_init(word_reader *w){
+//TO DO
+// initialize a small buffer
+// set cap to that buffer size
+// set len to 0
+// set pending_hyphen to false
+}
+
+void wr_read(word_reader *w, const char *data, size_t n){
+//TO DO
+//so lost for this, will look into tonight
+}
+
+void wr_ender(word_reader *w){
+//TO DO
+//So if a file is on the last word and the file doesnt end in a word serperator, this just still somehow make that work count
+//Example:
+//"blah blah blah.......... .... .. . . .. word" so word wouldnt count since the file doesnt end with a whitespace
+
+}
+
+void wr_free(word_reader *w){
+//TO DO
+//This should free the buffer and word reader memory where applicable	
+}
+
+
+//Path Traversing
+//---------------
+//
 
 
 
 void process_path(const char *path, const char *suffix){
 
 	
+}
+
+void process_file(const char *path){
+	
+	
+}
+
+void traverse_dir(const char *path, const char *suffix){
 
 
 }
+
+//Output Formatting
+//-----------------
+//
+
+//This should use the tree to into an array based on count
+void print_sorted(node *root){
+//TO DO
+}
+
+//Main
+//----
+//
+
+int main(/* Arguments with path, suffix, and something else I think*/){
+//TO DO
+
+}
+
+
+
+
