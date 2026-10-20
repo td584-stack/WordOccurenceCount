@@ -83,17 +83,34 @@ void wr_read(word_reader *w, const char *data, size_t n){
 //so lost for this, will look into tonight
 }
 
+static void wr_addWord(word_reader *w){
+	if(w->len = 0) return;
+
+	w-> buf[w->len] = '\0';
+	tree_add(&root, w-> buf);
+
+	*(w-> buf) = '\0';
+	w-> len = 0;
+}
+
 void wr_ender(word_reader *w){
 //TO DO
 //So if a file is on the last word and the file doesnt end in a word serperator, this just still somehow make that work count
 //Example:
 //"blah blah blah.......... .... .. . . .. word" so word wouldnt count since the file doesnt end with a whitespace
+	w -> pending_hyphen = 0;
+	wr_addWord(w-> buf);
 
 }
 
 void wr_free(word_reader *w){
 //TO DO
 //This should free the buffer and word reader memory where applicable	
+	free(w -> buf);
+	w-> buf = NULL;
+	w-> len = 0;
+	w-> cap = 0;
+	w-> pending_hyphen = 0;
 }
 
 
