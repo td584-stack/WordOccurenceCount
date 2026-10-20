@@ -4,6 +4,8 @@
 #include <unistd.h>
 #include "word.h"
 #include <sys/stat.h>
+#include <dirent.h>
+#include <fcntl.h>
 
 static node *root = NULL;
 
@@ -14,8 +16,8 @@ static node *root = NULL;
 
 void tree_add(node **nd, const char *word){
 	if (*nd == NULL){			//This is the base case, if the node is NULL, we allocate a tempory node memory with malloc
-		node *n = malloc(sizeof(*n);    //Then duplicate the passed word from our word reader using strdup() into temp nodes word var
-		n->word = strdup(*word);	//Increment count
+		node *n = malloc(sizeof(*n));    //Then duplicate the passed word from our word reader using strdup() into temp nodes word var
+		n->word = strdup(word);	//Increment count
 		n->count = 1;			//Set left and right children to null
 		n->left = n->right = NULL;	//Set the actual node = temp node and return
 		*nd = n;
@@ -37,7 +39,7 @@ size_t tree_size(node *nd){	//this is pretty straight forward; it will recursive
 	return 1 + tree_size(nd->left) + tree_size(nd->right);
 }
 
-void tree_to_array(node **nd, node **arr, size_t *i){		//it takes a node, an arr, and a counter (*i)
+void tree_to_array(node *nd, node **arr, size_t *i){		//it takes a node, an arr, and a counter (*i)
 	if (nd==NULL) return;					//it then recursevly adds the left subtree to the arr, then the current node, then right subtree
 	tree_to_array(nd->left, arr, i);			
 	arr[(*i)++] = nd;		//arr[(*i)++] just means arr[i++], i is a pointer to a passed counter of *i which is defined to be 0 in the caller function.
@@ -63,6 +65,17 @@ void wr_init(word_reader *w){
 // set cap to that buffer size
 // set len to 0
 // set pending_hyphen to false
+	w -> cap = 8;
+	w -> len = 0;
+	w -> pending_hyphen = 0;
+	w -> buf = malloc(w -> cap);
+	
+	if(w->buf == NULL){
+		perror("malloc");
+		exit(EXIT_FAILURE);
+	}
+
+	*(w -> buf) = '\0';
 }
 
 void wr_read(word_reader *w, const char *data, size_t n){
