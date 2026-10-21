@@ -156,7 +156,7 @@ void wr_ender(word_reader *w){
 //So if a file is on the last word and the file doesnt end in a word serperator, this just still somehow make that work count
 //Example:
 //"blah blah blah.......... .... .. . . .. word" so word wouldnt count since the file doesnt end with a whitespace
-	w -> pending_hyphen = 0;
+	w -> pending_hyphen = 0;// if the last chara is '-', it does not matter since we would not add it to the word until we read the next letter
 	wr_addWord(w-> buf);
 
 }
