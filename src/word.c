@@ -213,7 +213,7 @@ void process_file(const char *path){
 }
 
 void traverse_dir(const char *path, const char *suffix){
-
+	
 
 }
 
@@ -224,6 +224,38 @@ void traverse_dir(const char *path, const char *suffix){
 //This should use the tree to into an array based on count
 void print_sorted(node *root){
 //TO DO
+	int Numbernode = tree_size(root);
+	if(Numbernode == 0) return;
+
+	node **arr = malloc( Numbernode * sizeof(*arr));
+
+    if (arr == NULL) {
+        perror("malloc");
+        exit(EXIT_FAILURE);
+    }
+
+	size_t i = 0;
+	tree_to_array(root, arr, &i);
+	qsort(arr, Numbernode, sizeof(*arr), compare_node);
+	for (size_t j = 0; j < Numbernode; j++) {
+        printf("%s %d\n", arr[j]->word, arr[j]->count);
+    }
+
+    free(arr);
+}
+static int compare_node(const void* a, const void* b){
+	const node *x = *(const node * const *)a;
+    const node *y = *(const node * const *)b;
+
+    if (x->count > y->count) {
+        return -1;
+    }
+
+    if (x->count < y->count) {
+        return 1;
+    }
+
+    return strcmp(x->word, y->word);
 }
 
 //Main
@@ -234,7 +266,3 @@ int main(/* Arguments with path, suffix, and something else I think*/){
 //TO DO
 
 }
-
-
-
-
