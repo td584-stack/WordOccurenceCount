@@ -8,7 +8,7 @@
 #include <fcntl.h>
 
 static node *root = NULL;
-
+static int had_error = 0;
 
 //Binary Search Tree Implementation
 //---------------------------------
@@ -198,12 +198,46 @@ void wr_free(word_reader *w){
 //---------------
 //
 
+static int has_suffix(const char *name, const char *suffix){
+	size_t nlen = strlen(name);
+	size_t slen = strlen(suffix);
+	if(slen > nlen) return 0;
+	return strcmp(name + nlen - slen, suffix) == 0;
+}
 
+static char *join_path(const char *dir, const char *name){
+	size_t dlen = strlen(dir);
+	size_t nlen = strlen(name);
+	int need_slash = (dlen > 0 && dir[dlen - 1] != '/');
+ 
+	char *full = malloc(dlen + need_slash + nlen + 1);
+	if(full == NULL){
+		perror("malloc");
+		exit(EXIT_FAILURE);
+	}
+ 
+	memcpy(full, dir, dlen);
+	if(need_slash) full[dlen] = '/';
+	memcpy(full + dlen + need_slash, name, nlen + 1);
+	return full;
+}
 
 void process_path(const char *path, const char *suffix){
-
-	
+	struct stat st;
+ 
+	if(stat(path, &st) < 0){
+		perror(path);
+		had_error = 1;
+		return;
+	}
+ 
+	if(S_ISDIR(st.st_mode)){
+		traverse_dir(path, suffix);
+	} else {
+		process_file(path);
+	}
 }
+
 
 void process_file(const char *path){
 	int fd = open(path, O_RDONLY);
@@ -236,6 +270,38 @@ void process_file(const char *path){
 
 void traverse_dir(const char *path, const char *suffix){
 	
+	DIR *dir = opendir(path);
+ 
+	if(dir == NULL){
+		perror(path);
+		had_error = 1;
+		return;
+	}
+ 
+	struct dirent *entry;
+	while((entry = readdir(dir)) != NULL){
+		const char *name = entry->d_name;
+ 
+		if(name[0] == '.') continue;
+ 
+		char *full = join_path(path, name);
+		struct stat st;
+ 
+		if(stat(full, &st) < 0){
+			perror(full);
+			had_error = 1;
+		}
+		else if(S_ISDIR(st.st_mode)){
+			traverse_dir(full, suffix);
+		}
+		else if(S_ISREG(st.st_mode) && has_suffix(name, suffix)){
+			process_file(full);
+		}
+ 
+		free(full);
+	}
+ 
+	closedir(dir);
 
 }
 
@@ -243,37 +309,54 @@ void traverse_dir(const char *path, const char *suffix){
 //-----------------
 //
 //This should use the tree to into an array based on count
+
+static int compare_nodes(const void *a, const void *b){
+	const node *x = *(const node * const *)a;
+	const node *y = *(const node * const *)b;
+ 
+	if(x->count != y->count) return (x->count < y->count) ? 1 : -1;
+	return strcmp(x->word, y->word);
+}
+
+
+static void write_all(const char *s, size_t n){
+	while(n > 0){
+		ssize_t w = write(STDOUT_FILENO, s, n);
+		if(w < 0){
+			perror("write");
+			exit(EXIT_FAILURE);
+		}
+		s += w;
+		n -= (size_t)w;
+	}
+}
+
+
+
+
 void print_sorted(node *root){
-//TO DO
 	size_t Numbernode = tree_size(root);
 	if(Numbernode == 0) return;
 
-	node **arr = malloc( Numbernode * sizeof(*arr));
-
-    if (arr == NULL) {
-        perror("malloc");
-        exit(EXIT_FAILURE);
-    }
+	node **arr = malloc(Numbernode * sizeof(*arr));
+	if (arr == NULL) {
+		perror("malloc");
+		exit(EXIT_FAILURE);
+	}
 
 	size_t i = 0;
 	tree_to_array(root, arr, &i);
-	//sort by selection
-	for(size_t i = 0; i < Numbernode; i++){
-		size_t currentposition = i;
-		for(size_t j = i+1; j < Numbernode; j++){
-			if (arr[j]->count > arr[currentposition]->count || (arr[j]->count == arr[currentposition]->count && strcmp(arr[j]->word, arr[currentposition]->word) < 0)) {
-				currentposition = j;
-			}
-		}
-		node *temp = arr[i];
-		arr[i] = arr[currentposition];
-		arr[currentposition] = temp;
-	}
-	for (size_t j = 0; j < Numbernode; j++) {
-        printf("%s %d\n", arr[j]->word, arr[j]->count);
-    }
 
-    free(arr);
+	qsort(arr, Numbernode, sizeof(*arr), compare_nodes);
+
+	char num[32];
+	for (size_t j = 0; j < Numbernode; j++) {
+		write_all(arr[j]->word, strlen(arr[j]->word));
+		int len = sprintf(num, " %d\n", arr[j]->count);
+		write_all(num, (size_t)len);
+	}
+
+	free(arr);
 }
 
 
@@ -281,20 +364,45 @@ void print_sorted(node *root){
 //----
 //
 
-int main(/* Arguments with path, suffix, and something else I think*/int argc, char *argv[]){
-//TO DO
-	// currently just directly let the program read the test file from command
-	 if (argc != 2) {
-        fprintf(stderr, "Usage: %s <filename>\n", argv[0]);
-        return EXIT_FAILURE;
-    }
+int main(int argc, char *argv[]){
 
-    process_file(argv[1]);
-    print_sorted(root);
-    tree_free(root);
-    root = NULL;
+	const char *suffix = ".txt";
+	int nfiles = 0;
 
-    return EXIT_SUCCESS;
+	for(int i = 1; i < argc; i++){
+		if(strncmp(argv[i], "-s", 2) == 0){
+			if(argv[i][2] != '\0'){	
+				suffix = argv[i] + 2;
+			} else if(i + 1 < argc){
+				suffix = argv[i + 1];
+				i++;
+			} else {
+				fprintf(stderr, "%s: -s requires a suffix\n", argv[0]);
+				return EXIT_FAILURE;
+			}
+		} else {
+			nfiles++;
+		}
+	}
+
+	if(nfiles == 0){
+		fprintf(stderr, "Usage: %s [-s suffix] file_or_dir \n", argv[0]);
+		return EXIT_FAILURE;
+	}
+
+	for(int i = 1; i < argc; i++){
+		if(strncmp(argv[i], "-s", 2) == 0){
+			if(argv[i][2] == '\0') i++;
+			continue;
+		}
+		process_path(argv[i], suffix);
+	}
+
+	print_sorted(root);
+	tree_free(root);
+	root = NULL;
+
+	return had_error ? EXIT_FAILURE : EXIT_SUCCESS;
 }
 
 
