@@ -17,7 +17,28 @@ static node *root = NULL;
 void tree_add(node **nd, const char *word){
 	if (*nd == NULL){			//This is the base case, if the node is NULL, we allocate a tempory node memory with malloc
 		node *n = malloc(sizeof(*n));    //Then duplicate the passed word from our word reader using strdup() into temp nodes word var
-		n->word = strdup(word);	//Increment count
+		if (n == NULL) {
+			perror("malloc");
+			exit(EXIT_FAILURE);
+    	}
+		
+		n-> word = malloc(strlen(word)+1);
+
+		if(n-> word == NULL){
+			perror("malloc");
+			free(n);
+			exit(EXIT_FAILURE);
+		}
+
+		strcpy(n-> word, word);
+		//n->word = strdup(word);	//Increment count
+
+		if (n->word == NULL) {
+			perror("strcpy");
+			free(n);
+			exit(EXIT_FAILURE);
+    	}
+
 		n->count = 1;			//Set left and right children to null
 		n->left = n->right = NULL;	//Set the actual node = temp node and return
 		*nd = n;
@@ -78,46 +99,12 @@ void wr_init(word_reader *w){
 	*(w -> buf) = '\0';
 }
 
-void wr_read(word_reader *w, const char *data, size_t n){
-//TO DO
-//so lost for this, will look into tonight
-	for(size_t i = 0; i < n; i++){
-		char c = data[i];
-
-		//if there is an pending character '-';
-		if(w->pending_hyphen){
-			w-> pending_hyphen=0;
-
-			if(isletter(c)){
-				addchara(w, '-');
-				addchara(w, c);
-				continue;
-			}
-
-			wr_addWord(w);
-		}
-
-		if(isletter(c)|| c=='\'') {addchara(w, c);} // if c is alphabet or \', no matter where it is, we append it
-
-		else if(c == '-'){
-			if (w->len > 0 && is_letter(w->buf[w->len - 1])){ w->pending_hyphen = 1; }
-			else {wr_addWord(w);}//len==0(addword will do nothing) or the last character is '\''
-		}
-
-		else{
-			//c is num, whitespace, and punctuation other than ' and -
-			wr_addWord(w);
-		}
-
-	}
-}
 static int isletter(char c){
 	return ((c >= 'A' && c <= 'Z')||(c >= 'a' && c <= 'z'));
 }
 
 static void addchara(word_reader *w, char c)
 {
-    wr_reserve(w, w->len + 2);
 	//update capacity (buffer size) if len + 2 > capacity
 	
 	if(w->cap < (w->len + 2)){
@@ -142,7 +129,7 @@ static void addchara(word_reader *w, char c)
 }
 
 static void wr_addWord(word_reader *w){
-	if(w->len = 0) return;
+	if(w->len == 0) return;
 
 	w-> buf[w->len] = '\0';
 	tree_add(&root, w-> buf);
@@ -151,13 +138,48 @@ static void wr_addWord(word_reader *w){
 	w-> len = 0;
 }
 
+void wr_read(word_reader *w, const char *data, size_t n){
+//TO DO
+//so lost for this, will look into tonight
+	for(size_t i = 0; i < n; i++){
+		char c = data[i];
+
+		//if there is an pending character '-';
+		if(w->pending_hyphen){
+			w-> pending_hyphen=0;
+
+			if(isletter(c)){
+				addchara(w, '-');
+				addchara(w, c);
+				continue;
+			}
+
+			wr_addWord(w);
+		}
+
+		if(isletter(c)|| c=='\'') {addchara(w, c);} // if c is alphabet or \', no matter where it is, we append it
+
+		else if(c == '-'){
+			if (w->len > 0 && isletter(w->buf[w->len - 1])){ w->pending_hyphen = 1; }
+			else {wr_addWord(w);}//len==0(addword will do nothing) or the last character is '\''
+		}
+
+		else{
+			//c is num, whitespace, and punctuation other than ' and -
+			wr_addWord(w);
+		}
+
+	}
+}
+
+
 void wr_ender(word_reader *w){
 //TO DO
 //So if a file is on the last word and the file doesnt end in a word serperator, this just still somehow make that work count
 //Example:
 //"blah blah blah.......... .... .. . . .. word" so word wouldnt count since the file doesnt end with a whitespace
 	w -> pending_hyphen = 0;// if the last chara is '-', it does not matter since we would not add it to the word until we read the next letter
-	wr_addWord(w-> buf);
+	wr_addWord(w);
 
 }
 
@@ -197,7 +219,7 @@ void process_file(const char *path){
 	char buffer[4096];
 	ssize_t bytesread = read(fd, buffer, sizeof(buffer));
 
-	while(bytesread > 1){
+	while(bytesread > 0){
 		wr_read(&reader, buffer, (size_t)bytesread);
 		bytesread = read(fd, buffer, sizeof(buffer));
 	}
@@ -220,11 +242,10 @@ void traverse_dir(const char *path, const char *suffix){
 //Output Formatting
 //-----------------
 //
-
 //This should use the tree to into an array based on count
 void print_sorted(node *root){
 //TO DO
-	int Numbernode = tree_size(root);
+	size_t Numbernode = tree_size(root);
 	if(Numbernode == 0) return;
 
 	node **arr = malloc( Numbernode * sizeof(*arr));
@@ -236,33 +257,43 @@ void print_sorted(node *root){
 
 	size_t i = 0;
 	tree_to_array(root, arr, &i);
-	qsort(arr, Numbernode, sizeof(*arr), compare_node);
+	//sort by selection
+	for(size_t i = 0; i < Numbernode; i++){
+		size_t currentposition = i;
+		for(size_t j = i+1; j < Numbernode; j++){
+			if (arr[j]->count > arr[currentposition]->count || (arr[j]->count == arr[currentposition]->count && strcmp(arr[j]->word, arr[currentposition]->word) < 0)) {
+				currentposition = j;
+			}
+		}
+		node *temp = arr[i];
+		arr[i] = arr[currentposition];
+		arr[currentposition] = temp;
+	}
 	for (size_t j = 0; j < Numbernode; j++) {
         printf("%s %d\n", arr[j]->word, arr[j]->count);
     }
 
     free(arr);
 }
-static int compare_node(const void* a, const void* b){
-	const node *x = *(const node * const *)a;
-    const node *y = *(const node * const *)b;
 
-    if (x->count > y->count) {
-        return -1;
-    }
-
-    if (x->count < y->count) {
-        return 1;
-    }
-
-    return strcmp(x->word, y->word);
-}
 
 //Main
 //----
 //
 
-int main(/* Arguments with path, suffix, and something else I think*/){
+int main(/* Arguments with path, suffix, and something else I think*/int argc, char *argv[]){
 //TO DO
+	 if (argc != 2) {
+        fprintf(stderr, "Usage: %s <filename>\n", argv[0]);
+        return EXIT_FAILURE;
+    }
 
+    process_file(argv[1]);
+    print_sorted(root);
+    tree_free(root);
+    root = NULL;
+
+    return EXIT_SUCCESS;
 }
+
+
