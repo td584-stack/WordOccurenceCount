@@ -283,6 +283,7 @@ void print_sorted(node *root){
 
 int main(/* Arguments with path, suffix, and something else I think*/int argc, char *argv[]){
 //TO DO
+	// currently just directly let the program read the test file from command
 	 if (argc != 2) {
         fprintf(stderr, "Usage: %s <filename>\n", argv[0]);
         return EXIT_FAILURE;
