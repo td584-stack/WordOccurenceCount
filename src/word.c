@@ -81,6 +81,64 @@ void wr_init(word_reader *w){
 void wr_read(word_reader *w, const char *data, size_t n){
 //TO DO
 //so lost for this, will look into tonight
+	for(size_t i = 0; i < n; i++){
+		char c = data[i];
+
+		//if there is an pending character '-';
+		if(w->pending_hyphen){
+			w-> pending_hyphen=0;
+
+			if(isletter(c)){
+				addchara(w, '-');
+				addchara(w, c);
+				continue;
+			}
+
+			wr_addWord(w);
+		}
+
+		if(isletter(c)|| c=='\'') {addchara(w, c);} // if c is alphabet or \', no matter where it is, we append it
+
+		else if(c == '-'){
+			if (w->len > 0 && is_letter(w->buf[w->len - 1])){ w->pending_hyphen = 1; }
+			else {wr_addWord(w);}//len==0(addword will do nothing) or the last character is '\''
+		}
+
+		else{
+			//c is num, whitespace, and punctuation other than ' and -
+			wr_addWord(w);
+		}
+
+	}
+}
+static int isletter(char c){
+	return ((c >= 'A' && c <= 'Z')||(c >= 'a' && c <= 'z'));
+}
+
+static void addchara(word_reader *w, char c)
+{
+    wr_reserve(w, w->len + 2);
+	//update capacity (buffer size) if len + 2 > capacity
+	
+	if(w->cap < (w->len + 2)){
+		size_t new_size = 8;
+		while(new_size< (w->len + 2)){
+			new_size *=2;
+		}
+		char * newbuf= realloc(w-> buf, new_size);
+
+		if (newbuf== NULL){
+			perror("realloc");
+			exit(EXIT_FAILURE);
+		}
+
+		w->buf = newbuf;
+		w->cap = new_size;
+	}
+
+    w->buf[w->len] = c;
+	w->len++;
+    w->buf[w->len] = '\0';
 }
 
 static void wr_addWord(word_reader *w){
@@ -126,8 +184,32 @@ void process_path(const char *path, const char *suffix){
 }
 
 void process_file(const char *path){
+	int fd = open(path, O_RDONLY);
 	
+	if(fd < 0){
+		perror(path);
+		return;
+	}
+
+	word_reader reader;
+	wr_init(&reader);
 	
+	char buffer[4096];
+	ssize_t bytesread = read(fd, buffer, sizeof(buffer));
+
+	while(bytesread > 1){
+		wr_read(&reader, buffer, (size_t)bytesread);
+		bytesread = read(fd, buffer, sizeof(buffer));
+	}
+	
+	if(bytesread < 0){
+		perror("read");
+		return;
+	}
+
+	wr_ender(&reader);
+	wr_free(&reader);
+	close(fd);
 }
 
 void traverse_dir(const char *path, const char *suffix){
