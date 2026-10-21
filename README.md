@@ -8,7 +8,7 @@ Tinson Dong: td584
 
 # design note:
 
-## Data Structure Used To Store Words: Binary Search Tree:
+### Data Structure Used To Store Words: Binary Search Tree:
 
 1. flexible size
 
@@ -16,9 +16,8 @@ Tinson Dong: td584
 
 -limitation: may ends in unbalanced tree and prolong time complexity
 
-\n 
 
-## Sorting (in void print_sorted(node *root)):
+### Sorting (in void print_sorted(node *root)):
 
 Sort word by ascending order according to word node's count
 
@@ -26,9 +25,9 @@ Sort word by ascending order according to word node's count
 
 # test plan:
 
-## Program:
+### Program:
 
-## Words:
+### Words:
 
 1. empty file -> nothing
 
